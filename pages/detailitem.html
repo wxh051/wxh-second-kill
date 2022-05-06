@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>商品详情</title>
+		<link rel="stylesheet" href="./static/css/semantic.min.css">
+		<link rel="stylesheet" href="./static/css/manster.css">
+	</head>
+	<body>
+		<div class="m-container-small m-padded-tb-massive" style="max-width: 60em !important;">
+		    <div class="ui container">
+		        <div class="ui middle aligned center aligned grid">
+		            <div class="column">
+		                <h2 class="ui teal image header">
+		                    <div class="content">
+		                        商品详情
+		                    </div>
+		                </h2>
+						<div class="ui grid">
+							<div class="eight wide column">
+								<img class="image" style="width: 400px;height: auto;" id="imgUrl" />
+							</div>
+							<div class="eight wide column">
+								<div id="promoStartDateContainer" class="m-font-size-text-price">
+									<label id="promoStatus"></label>
+									<span class="m-font-size-text-startDate" id="promoStartDate"></span>
+								</div>
+								<br />
+								<div class="row">
+									<span class="m-font-size-text-description-title" id="title"></span>
+								</div>
+								<br />
+								<div class="row">
+									<span class="m-font-size-text-description" id="description"></span>
+								</div>
+								<br />
+								<div id="normalPriceContainer">
+									<span class="m-font-size-text-price">￥</span><span id="price" class="m-font-size-text-price"></span>
+								</div>
+								<div id="promoPriceContainer">
+									<span class="m-font-size-text-promoPrice">秒杀价￥</span><span id="promoPrice" class="m-font-size-text-promoPrice"></span>
+								</div>
+								<br />
+								<div class="two wide column">
+									<span>库存:</span>
+									<span id="stock"></span>
+									<span>销量:</span>
+									<span id="sales"></span>
+								</div>
+								<br />
+								<button class="ui large red submit button" id="createorder" type="submit">下单</button>
+							</div>
+						</div>
+		
+		            </div>
+		        </div>
+		    </div>
+		</div>
+	
+	<script src="./static/js/jquery-3.3.1.js"></script>
+	<script src="./static/js/semantic.min.js"></script>
+	<script>
+		
+		function getParam(paramName) {
+		    paramValue = "", isFound = !1;
+		    if (this.location.search.indexOf("?") == 0 && this.location.search.indexOf("=") > 1) {
+		        arrSource = unescape(this.location.search).substring(1, this.location.search.length).split("&"), i = 0;
+		        while (i < arrSource.length && !isFound) arrSource[i].indexOf("=") > 0 && arrSource[i].split("=")[0].toLowerCase() == paramName.toLowerCase() && (paramValue = arrSource[i].split("=")[1], isFound = !0), i++
+		    }
+		    return paramValue == "" && (paramValue = null), paramValue
+		}
+		
+		var g_itemVO = {};
+		
+		jQuery(document).ready(function(){
+			$("#createorder").on("click",function(){
+				//下单
+				$.ajax({
+					type:"POST",
+					contentType:"application/x-www-form-urlencoded",
+					url:"http://localhost:8888/order/createOrder",
+					data:{
+						"itemId": g_itemVO.id,
+						"amount": 1,
+						"promoId": g_itemVO.promoId
+					},
+					xhrFields:{withCredentials:true},
+					success:function(data){
+						if("success" == data.status){
+							alert("下单成功");
+							window.location.reload();
+						}else{
+							alert("下单失败，原因为"+data.data.errMsg);
+							if(data.data.errCode == 20003){
+								window.location.href = "login.html";
+							}
+						}
+					},
+					error:function(data){
+						alert("下单失败，原因为"+data.responseText);
+					}
+					
+				});
+			});
+			
+				//获取商品详情
+				$.ajax({
+					type:"GET",
+					url:"http://localhost:8888/item/getItem",
+					data:{
+						"id": getParam("id")
+					},
+					xhrFields:{withCredentials:true},
+					success:function(data){
+						if("success" == data.status){
+							g_itemVO = data.data;
+							reloadDom();
+							//开启定时任务
+							setInterval(reloadDom, 1000);
+						}else{
+							alert("获取信息失败，原因为"+data.data.errMsg);
+						}
+					},
+					error:function(data){
+						alert("获取信息，原因为"+data.responseText);
+					}
+					
+				});
+			return false;
+			
+		});
+		
+		function reloadDom(){
+			$("#title").text(g_itemVO.title);
+			$("#description").text(g_itemVO.description);
+			$("#price").text(g_itemVO.price);
+			$("#imgUrl").attr("src",g_itemVO.imgUrl);
+			$("#stock").text(g_itemVO.stock);
+			$("#sales").text(g_itemVO.sales);
+			if(g_itemVO.promoStatus == 1){
+				//秒杀活动还未开始
+				var startTime = g_itemVO.startDate.replace(new RegExp("-","gm"),"/");
+				startTime = (new Date(startTime)).getTime();
+				var nowTime = Date.parse(new Date());
+				var delta = (startTime - nowTime)/1000;
+				
+				if(delta <= 0){
+					//活动开始
+					g_itemVO.promoStatus = 2;
+					reloadDom();
+				}
+				$("#promoStartDate").text("秒杀活动将于" + g_itemVO.startDate + "开始! 倒计时:" + delta + "秒");
+				$("#promoPrice").text(g_itemVO.promoPrice);
+				//禁止下单
+				$("#createorder").attr("disabled", true);
+			}else if(g_itemVO.promoStatus == 2){
+				$("#normalPriceContainer").hide();
+				//活动进行中
+				$("#promoStartDate").text("秒杀正在进行!");
+				$("#promoPrice").text(g_itemVO.promoPrice);
+				//可以下单
+				$("#createorder").attr("disabled", false);
+			}else{
+				$("#promoPriceContainer").hide();
+			}
+		}
+	</script>
+	</body>
+</html>

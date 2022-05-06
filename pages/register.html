@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>用户注册</title>
+		<link rel="stylesheet" href="./static/css/semantic.min.css">
+		<link rel="stylesheet" href="./static/css/manster.css">
+	</head>
+	
+	<body>
+	<div class="m-container-small m-padded-tb-massive" style="max-width: 30em !important;">
+	    <div class="ur container">
+	        <div class="ui middle aligned center aligned grid">
+	            <div class="column">
+	                <h2 class="ui teal image header">
+	                    <div class="content">
+	                        用户注册
+	                    </div>
+	                </h2>
+	                <div class="ui large form">
+	                    <div class="ui  segment">
+	                        <div class="field">
+	                            <div class="ui left action input">
+	                              <button class="ui teal button">
+	                                手机号：
+	                              </button>
+	                              <input type="text" placeholder="手机号" name="telphone" id="telphone" />
+	                            </div>
+	                        </div>
+	                        <div class="field">
+	                            <div class="ui left action input">
+	                              <button class="ui teal button">
+	                                验证码：
+	                              </button>
+	                              <input type="text" placeholder="验证码" name="otpCode" id="otpCode" />
+	                            </div>
+	                        </div>
+							<div class="field">
+							    <div class="ui left action input">
+							      <button class="ui teal button">
+							        昵称：
+							      </button>
+							      <input type="text" placeholder="用户昵称" name="name" id="name" />
+							    </div>
+							</div>
+							<div class="field">
+							    <div class="ui left action input">
+							      <button class="ui teal button">
+							        性别：
+							      </button>
+							      <input type="text" placeholder="请输入数字0为女1为男" name="gender" id="gender" />
+							    </div>
+							</div>
+							<div class="field">
+							    <div class="ui left action input">
+							      <button class="ui teal button">
+							        年龄：
+							      </button>
+							      <input type="text" placeholder="年龄" name="age" id="age"  />
+							    </div>
+							</div>
+							<div class="field">
+							    <div class="ui left action input">
+							      <button class="ui teal button">
+							        密码：
+							      </button>
+							      <input type="password" placeholder="密码" name="password" id="password" />
+							    </div>
+							</div>
+	                        <button class="ui fluid large teal submit button" id="register" type="submit">注册</button>
+	                    </div>
+	
+	                    <div class="ui error mini message"></div>
+	
+	                </div>
+	
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	
+	<script src="./static/js/jquery-3.3.1.js"></script>
+	<script src="./static/js/semantic.min.js"></script>
+	<script>
+		jQuery(document).ready(function(){
+			//绑定otp的click事件用于向后端获取验证码
+			$("#register").on("click", function(){
+				var telphone = $("#telphone").val();
+				var otpCode = $("#otpCode").val();
+				var name = $("#name").val();
+				var gender = $("#gender").val();
+				var age = $("#age").val();
+				var password = $("#password").val();
+				if(telphone == null || telphone == ""){
+					alert("手机号不能为空");
+					return false;
+				}
+				if(otpCode == null || otpCode == ""){
+					alert("验证码不能为空");
+					return false;
+				}
+				if(name == null || name == ""){
+					alert("用户昵称不能为空");
+					return false;
+				}
+				if(gender == null || gender == ""){
+					alert("性别不能为空");
+					return false;
+				}
+				if(age == null || age == ""){
+					alert("年龄不能为空");
+					return false;
+				}
+				if(password == null || password == ""){
+					alert("密码不能为空");
+					return false;
+				}
+				$.ajax({
+					type:"POST",
+					contentType:"application/x-www-form-urlencoded",
+					url:"http://localhost:8888/user/register",
+					data:{
+						"telphone": telphone,
+						"otpCode": otpCode,
+						"name": name,
+						"gender": gender,
+						"age": age,
+						"password": password
+					},
+					xhrFields:{withCredentials:true},
+					success:function(data){
+						if("success" == data.status){
+							alert("注册成功");
+							window.location.href = "login.html";
+						}else{
+							alert("注册失败，原因为"+data.data.errMsg);
+						}
+					},
+					error:function(data){
+						alert("注册失败，原因为"+data.responseText);
+					}
+					
+				})
+				return false;
+			})
+			
+		});
+	</script>
+	</body>
+</html>
