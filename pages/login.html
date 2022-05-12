@@ -53,14 +53,16 @@
 
     <script src="./static/js/jquery-3.3.1.js"></script>
     <script src="./static/js/semantic.min.js"></script>
-	
+    <script src="./g_host.js" type="text/javascript"></script>
+
+
 	<script>
 		$(document).ready(function(){
-			
+
 			$("#register").on("click", function(){
 				window.location.href="getotp.html";
 			});
-			
+
 			//绑定otp的click事件用于向后端获取验证码
 			$("#login").on("click", function(){
 				var telphone = $("#telphone").val();
@@ -80,7 +82,7 @@
 				$.ajax({
 					type:"POST",
 					contentType:"application/x-www-form-urlencoded",
-					url:"http://localhost:8888/user/login",
+					url:"http://"+g_host+"/user/login",
 					data:{
 						"telphone": telphone,
 						"password": password
@@ -89,6 +91,8 @@
 					success:function(data){
 						if("success" == data.status){
 							alert("登录成功");
+                            //html5通过localStorage来存储token，没有cookie的存储大小限制
+                            window.localStorage["token"] = data.data;
 							window.location.href = "listitem.html";
 						}else{
 							alert("登录失败，原因为"+data.data.errMsg);
@@ -97,11 +101,11 @@
 					error:function(data){
 						alert("登录失败，原因为"+data.responseText);
 					}
-					
+
 				})
 				return false;
 			})
-			
+
 		});
 	</script>
 

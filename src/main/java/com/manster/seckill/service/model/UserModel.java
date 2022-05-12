@@ -1,9 +1,11 @@
 package com.manster.seckill.service.model;
 
+import org.hibernate.validator.constraints.NotBlank;
+
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import org.hibernate.validator.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
 
 /**
  * @Author manster
@@ -12,7 +14,10 @@ import javax.validation.constraints.NotNull;
 //在service层定义一个model,是一个分层的处理，不能直接返回数据库直接映射的一个entity对象。
 //这个model才是真正意义上springMVC业务逻辑中模型的概念。entity仅仅只是对数据库的一个映射
 //比如下面的encrptPassword字段，它是属于usermodel的。但是因为数据模型的关系，当时是设计在了两种表中
-public class UserModel {
+
+//    要实现存入redis，必须实现序列化接口，才可以使用jdk默认的序列化方式完成redis的存取
+//    还有一种更好的方式就是修改redis默认的序列化方式为JSON形式
+public class UserModel implements Serializable {
     private Integer id;
     @NotBlank(message = "用户名不能为空")
     private String name;

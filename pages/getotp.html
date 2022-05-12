@@ -44,8 +44,9 @@
 		
 	<script src="./static/js/jquery-3.3.1.js"></script>
 	<script src="./static/js/semantic.min.js"></script>
+	<script src="./g_host.js" type="text/javascript"></script>
 
-	
+
 	<script>
 <!--		使用jQuery处理页面交互，ajax处理请求。-->
 		jQuery(document).ready(function(){
@@ -59,7 +60,7 @@
 				$.ajax({
 					type:"POST",
 					contentType:"application/x-www-form-urlencoded",
-					url:"http://localhost:8888/user/getotp",
+					url:"http://"+g_host+"/user/getotp",
 					data:{
 						"telphone": $("#telphone").val(),
 					},

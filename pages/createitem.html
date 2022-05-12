@@ -76,6 +76,7 @@
 	
 	<script src="./static/js/jquery-3.3.1.js"></script>
 	<script src="./static/js/semantic.min.js"></script>
+	<script src="./g_host.js" type="text/javascript"></script>
 	<script>
 		jQuery(document).ready(function(){
 			//绑定otp的click事件用于向后端获取验证码
@@ -108,7 +109,7 @@
 				$.ajax({
 					type:"POST",
 					contentType:"application/x-www-form-urlencoded",
-					url:"http://localhost:8888/item/create",
+					url:"http://"+g_host+"/item/create",
 					data:{
 						"title": title,
 						"price": price,

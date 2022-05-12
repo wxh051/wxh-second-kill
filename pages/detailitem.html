@@ -51,16 +51,18 @@
 								<button class="ui large red submit button" id="createorder" type="submit">下单</button>
 							</div>
 						</div>
-		
+
 		            </div>
 		        </div>
 		    </div>
 		</div>
-	
+
 	<script src="./static/js/jquery-3.3.1.js"></script>
 	<script src="./static/js/semantic.min.js"></script>
+	<script src="./g_host.js" type="text/javascript"></script>
+
 	<script>
-		
+
 		function getParam(paramName) {
 		    paramValue = "", isFound = !1;
 		    if (this.location.search.indexOf("?") == 0 && this.location.search.indexOf("=") > 1) {
@@ -69,16 +71,23 @@
 		    }
 		    return paramValue == "" && (paramValue = null), paramValue
 		}
-		
+
 		var g_itemVO = {};
-		
+
 		jQuery(document).ready(function(){
 			$("#createorder").on("click",function(){
+				var token = window.localStorage["token"];
+				if(token == null){
+					alert("没有登录，不能下单");
+					window.location.href="login.html";
+					return false;
+				}
 				//下单
 				$.ajax({
 					type:"POST",
 					contentType:"application/x-www-form-urlencoded",
-					url:"http://localhost:8888/order/createOrder",
+					//有登录，把token放在请求体后面
+					url:"http://"+g_host+"/order/createOrder?token="+token,
 					data:{
 						"itemId": g_itemVO.id,
 						"amount": 1,
@@ -99,14 +108,14 @@
 					error:function(data){
 						alert("下单失败，原因为"+data.responseText);
 					}
-					
+
 				});
 			});
-			
+
 				//获取商品详情
 				$.ajax({
 					type:"GET",
-					url:"http://localhost:8888/item/getItem",
+					url:"http://"+g_host+"/item/getItem",
 					data:{
 						"id": getParam("id")
 					},
@@ -124,12 +133,12 @@
 					error:function(data){
 						alert("获取信息，原因为"+data.responseText);
 					}
-					
+
 				});
 			return false;
-			
+
 		});
-		
+
 		function reloadDom(){
 			$("#title").text(g_itemVO.title);
 			$("#description").text(g_itemVO.description);
@@ -143,7 +152,7 @@
 				startTime = (new Date(startTime)).getTime();
 				var nowTime = Date.parse(new Date());
 				var delta = (startTime - nowTime)/1000;
-				
+
 				if(delta <= 0){
 					//活动开始
 					g_itemVO.promoStatus = 2;
