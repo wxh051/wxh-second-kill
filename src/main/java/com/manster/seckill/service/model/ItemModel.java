@@ -4,6 +4,7 @@ import org.hibernate.validator.constraints.NotBlank;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
@@ -11,7 +12,7 @@ import java.math.BigDecimal;
  * @Date 2021/5/24
  **/
 //给出了一个页面原型，我们应该先考虑设计领域模型，而不是数据库表的设计
-public class ItemModel {
+public class ItemModel implements Serializable {
 
     private Integer id;
 

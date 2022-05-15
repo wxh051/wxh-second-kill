@@ -2,6 +2,7 @@ package com.manster.seckill.service.model;
 
 import org.joda.time.DateTime;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 
@@ -9,7 +10,7 @@ import java.math.BigDecimal;
  * @Author manster
  * @Date 2021/5/27
  **/
-public class PromoModel {
+public class PromoModel implements Serializable {
 
     private Integer id;
 

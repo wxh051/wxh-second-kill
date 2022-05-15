@@ -87,10 +87,12 @@
 					type:"POST",
 					contentType:"application/x-www-form-urlencoded",
 					//有登录，把token放在请求体后面
-					url:"http://"+g_host+"/order/createOrder?token="+token,
+					// url:"http://"+g_host+"/order/createOrder?token="+token,
+					url:"http://"+g_host+"/order/createOrder",
 					data:{
 						"itemId": g_itemVO.id,
 						"amount": 1,
+						"token": token,
 						"promoId": g_itemVO.promoId
 					},
 					xhrFields:{withCredentials:true},

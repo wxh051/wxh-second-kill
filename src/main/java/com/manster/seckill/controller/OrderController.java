@@ -34,6 +34,7 @@ public class OrderController extends BaseController {
     @PostMapping(value = "/createOrder", consumes = {CONTENT_TYPE_FORMED})
     public CommonReturnType createItem(@RequestParam(name = "itemId") Integer itemId,
                                        @RequestParam(name = "amount") Integer amount,
+                                       @RequestParam(name = "token",required = false) String token,
                                        @RequestParam(name = "promoId", required = false) Integer promoId) throws BusinessException {
 
         //判断是否登录
@@ -41,7 +42,7 @@ public class OrderController extends BaseController {
 //        if(isLogin == null || !isLogin){
 //            throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "请登录后下单");
 //        }
-        String token = httpServletRequest.getParameterMap().get("token")[0];
+//        String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "请登录后下单");
 
@@ -50,7 +51,7 @@ public class OrderController extends BaseController {
         UserModel userModel = (UserModel) redisTemplate.opsForValue().get(token);
         //会话过期
         if (userModel == null) {
-            throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "请登录后下单");
+            throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "会话过期，请再次登录");
         }
 
 //      UserModel userModel = (UserModel) httpServletRequest.getSession().getAttribute("LOGIN_USER");
