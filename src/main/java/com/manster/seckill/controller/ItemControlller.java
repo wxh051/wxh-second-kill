@@ -5,6 +5,7 @@ import com.manster.seckill.error.BusinessException;
 import com.manster.seckill.response.CommonReturnType;
 import com.manster.seckill.service.CacheService;
 import com.manster.seckill.service.ItemService;
+import com.manster.seckill.service.PromoService;
 import com.manster.seckill.service.model.ItemModel;
 import org.joda.time.format.DateTimeFormat;
 import org.springframework.beans.BeanUtils;
@@ -35,6 +36,9 @@ public class ItemControlller extends BaseController {
 
     @Autowired
     private CacheService cacheService;
+
+    @Autowired
+    private PromoService promoService;
 
     //商品创建
     @PostMapping(value = "/create", consumes = {CONTENT_TYPE_FORMED})
@@ -73,7 +77,14 @@ public class ItemControlller extends BaseController {
     }
 
 
-    //商品浏览
+    @GetMapping(value = "/publishpromo")
+    public CommonReturnType publishpromo(@RequestParam(name = "id") Integer id) {
+        promoService.publishPromo(id);
+        return CommonReturnType.create(null);
+    }
+
+
+    //商品详情页浏览
     @GetMapping(value = "/getItem")
     public CommonReturnType getItem(@RequestParam(name = "id") Integer id) {
         ItemModel itemModel = null;

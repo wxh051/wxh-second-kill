@@ -4,5 +4,10 @@
       "name": "mvc.hiddenmethod.filter",
       "type": "java.lang.String",
       "description": "Description for mvc.hiddenmethod.filter."
-  }
-] }
+    },
+    {
+      "name": "mq.topicname",
+      "type": "java.lang.String",
+      "description": "Description for mq.topicname."
+    }
+  ] }

@@ -45,34 +45,37 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount) throws BusinessException {
         //1.校验下单状态，商品是否存在，用户是否合法，购买数量是否正确
-        ItemModel itemModel = itemService.getItemById(itemId);
-        if(itemModel == null){
+//        ItemModel itemModel = itemService.getItemById(itemId);
+        //修改成下面这种，减小对数据库的依赖
+        ItemModel itemModel = itemService.getItemByIdInCache(itemId);
+        if (itemModel == null) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "商品信息不存在");
         }
 
-        UserModel userModel = userService.getUserById(userId);
-        if(userModel == null){
+//        UserModel userModel = userService.getUserById(userId);
+        UserModel userModel = userService.getUserByIdInCache(userId);
+        if (userModel == null) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "用户信息不存在");
         }
 
-        if(amount <= 0 || amount > 99){
+        if (amount <= 0 || amount > 99) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "数量信息不正确");
         }
 
         //校验活动信息
-        if(promoId != null){
+        if (promoId != null) {
             //校验对应活动是否存在这个适用商品
-            if(!promoId.equals(itemModel.getPromoModel().getId())){
+            if (!promoId.equals(itemModel.getPromoModel().getId())) {
                 throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不正确");
-            }else if (itemModel.getPromoModel().getStatus() != 2){
-            //活动是否正在进行中
+            } else if (itemModel.getPromoModel().getStatus() != 2) {
+                //活动是否正在进行中
                 throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动还未开始");
             }
         }
 
         //2.落单减库存，支付减库存
         boolean result = itemService.decreaseStock(itemId, amount);
-        if(!result){
+        if (!result) {
             throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
         }
 
@@ -81,10 +84,10 @@ public class OrderServiceImpl implements OrderService {
         orderModel.setItemId(itemId);
         orderModel.setUserId(userId);
         orderModel.setAmount(amount);
-        if(promoId != null){
+        if (promoId != null) {
             //商品价格取特价
             orderModel.setItemPrice(itemModel.getPromoModel().getPromoItemPrice());
-        }else {
+        } else {
             orderModel.setItemPrice(itemModel.getPrice());
         }
         orderModel.setPromoId(promoId);
@@ -106,7 +109,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     //设计事务为下面这种方式。代表下表这个事务提交后不影响调用它的外部的事务
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public String generateOrderNo(){
+    public String generateOrderNo() {
         //订单号16位
         StringBuilder stringBuilder = new StringBuilder();
         //前8位为 年月日
@@ -136,8 +139,8 @@ public class OrderServiceImpl implements OrderService {
         return stringBuilder.toString();
     }
 
-    private OrderDO convertFromOrderModel(OrderModel orderModel){
-        if(orderModel == null){
+    private OrderDO convertFromOrderModel(OrderModel orderModel) {
+        if (orderModel == null) {
             return null;
         }
         OrderDO orderDO = new OrderDO();
