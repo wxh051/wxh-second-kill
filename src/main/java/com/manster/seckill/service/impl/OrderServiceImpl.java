@@ -2,8 +2,10 @@ package com.manster.seckill.service.impl;
 
 import com.manster.seckill.dao.OrderDOMapper;
 import com.manster.seckill.dao.SequenceDOMapper;
+import com.manster.seckill.dao.StockLogDOMapper;
 import com.manster.seckill.entity.OrderDO;
 import com.manster.seckill.entity.SequenceDO;
+import com.manster.seckill.entity.StockLogDO;
 import com.manster.seckill.error.BusinessException;
 import com.manster.seckill.error.EmBusinessError;
 import com.manster.seckill.service.ItemService;
@@ -41,9 +43,12 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private SequenceDOMapper sequenceDOMapper;
 
+    @Autowired
+    private StockLogDOMapper stockLogDOMapper;
+
     @Override
     @Transactional
-    public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount) throws BusinessException {
+    public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount, String stockLogId) throws BusinessException {
         //1.校验下单状态，商品是否存在，用户是否合法，购买数量是否正确
 //        ItemModel itemModel = itemService.getItemById(itemId);
         //修改成下面这种，减小对数据库的依赖
@@ -101,6 +106,30 @@ public class OrderServiceImpl implements OrderService {
 
         //加上商品的销量
         itemService.increaseSales(itemId, amount);
+
+        //设置库存流水状态为成功
+        //因为下单操作和设置流水状态为成功是在同一个事务内。不会出现下单成功，库存流水设置失败的情况
+        StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
+        if(stockLogDO==null){
+            throw new BusinessException(EmBusinessError.UNKNOWN_ERROR);
+        }
+        stockLogDO.setStatus(2);
+        stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
+
+//        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+//            @Override
+//            //这个方法会在最近的一个@Transaction标签被成功commit后再执行
+//            //把更新库存加在里面，一旦commit成功，便发送异步消息
+//            //但是存在一个问题，一旦发送消息失败，就没法回滚库存。
+//            public void afterCommit(){
+//                //异步更新库存
+//                boolean mqResult = itemService.asyncDecreaseStock(itemId, amount);
+//                /*if(!mqResult){
+//                    itemService.increaseStock(itemId,amount);
+//                    throw new BusinessException(EmBusinessError.MQ_SEND_FAIL);
+//                }*/
+//            }
+//        });
 
         //4.返回前端
         return orderModel;

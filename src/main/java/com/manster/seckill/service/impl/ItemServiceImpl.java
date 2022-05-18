@@ -2,8 +2,10 @@ package com.manster.seckill.service.impl;
 
 import com.manster.seckill.dao.ItemDOMapper;
 import com.manster.seckill.dao.ItemStockDOMapper;
+import com.manster.seckill.dao.StockLogDOMapper;
 import com.manster.seckill.entity.ItemDO;
 import com.manster.seckill.entity.ItemStockDO;
+import com.manster.seckill.entity.StockLogDO;
 import com.manster.seckill.error.BusinessException;
 import com.manster.seckill.error.EmBusinessError;
 import com.manster.seckill.mq.MqProducer;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -48,6 +51,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private MqProducer mqProducer;
+
+    @Autowired
+    private StockLogDOMapper stockLogDOMapper;
 
     /**
      * 将商品领域模型转为orm映射对象
@@ -154,32 +160,60 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
-    public boolean decreaseStock(Integer itemId, Integer amount) {
+    public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
 //        int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
         //这里自动拆箱有隐式的java空指针异常;严谨一点的写法应该在入口层面判空后异常退出
-        long result = redisTemplate.opsForValue().increment("promo_item_stock_"+itemId,amount.intValue() * -1);
+        long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
         //发送一条消息出去，让异步消息队列感知到，去减库存
-        if(result >= 0){
+        if (result > 0) {
             //更新库存成功
-            boolean mqResult =mqProducer.asyncReduceStock(itemId,amount);
-            if(!mqResult){
-                //发消息失败，需要重新加redis
-                redisTemplate.opsForValue().increment("promo_item_stock_"+itemId,amount.intValue());
-                return false;
-            }
             return true;
-        }else{
+        } else if (result == 0) {
+            //打上库存已售罄标识
+            redisTemplate.opsForValue().set("promo_item_stock_invalid_" + itemId, "true");
+            //更新库存成功
+            return true;
+        } else {
             //更新库存失败
             //result<0就代表了库存不够扣了。超卖了。所以不该扣，得加回去
-            redisTemplate.opsForValue().increment("promo_item_stock_"+itemId,amount.intValue());
+            increaseStock(itemId, amount);
             return false;
         }
+    }
+
+    @Override
+    public boolean increaseStock(Integer itemId, Integer amount) {
+        redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
+        return true;
+    }
+
+    @Override
+    //send是同步的 消费端是异步消费 所以起名async
+    public boolean asyncDecreaseStock(Integer itemId, Integer amount) {
+        boolean mqResult = mqProducer.asyncReduceStock(itemId, amount);
+        return mqResult;
     }
 
     @Override
     @Transactional
     public void increaseSales(Integer itemId, Integer amount) {
         itemDOMapper.increaseSales(itemId, amount);
+    }
+
+    @Override
+    @Transactional
+    //初始化一条库存的流水，用来将状态设置为一个准备开始的状态，并且提交对应的事务，使得数据库内有对应的stock_log生成
+    //在OrderController中下单之前调用
+    public String initStockLog(Integer itemId, Integer amount) {
+        StockLogDO stockLogDO = new StockLogDO();
+        stockLogDO.setItemId(itemId);
+        stockLogDO.setAmount(amount);
+        //使用uuuid的方式创建一个stock_log_id，作为一个主键
+        stockLogDO.setStockLogId(UUID.randomUUID().toString().replace("-", ""));
+        stockLogDO.setStatus(1);
+
+        stockLogDOMapper.insertSelective(stockLogDO);
+        return stockLogDO.getStockLogId();
     }
 
     private ItemModel convertModelFromEntity(ItemDO itemDO, ItemStockDO itemStockDO) {
