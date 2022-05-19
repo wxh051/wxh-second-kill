@@ -13,7 +13,6 @@ import com.manster.seckill.service.OrderService;
 import com.manster.seckill.service.UserService;
 import com.manster.seckill.service.model.ItemModel;
 import com.manster.seckill.service.model.OrderModel;
-import com.manster.seckill.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -57,26 +56,27 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "商品信息不存在");
         }
 
-//        UserModel userModel = userService.getUserById(userId);
-        UserModel userModel = userService.getUserByIdInCache(userId);
-        if (userModel == null) {
-            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "用户信息不存在");
-        }
+//
+////        UserModel userModel = userService.getUserById(userId);
+//        UserModel userModel = userService.getUserByIdInCache(userId);
+//        if (userModel == null) {
+//            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "用户信息不存在");
+//        }
 
         if (amount <= 0 || amount > 99) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "数量信息不正确");
         }
 
         //校验活动信息
-        if (promoId != null) {
-            //校验对应活动是否存在这个适用商品
-            if (!promoId.equals(itemModel.getPromoModel().getId())) {
-                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不正确");
-            } else if (itemModel.getPromoModel().getStatus() != 2) {
-                //活动是否正在进行中
-                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动还未开始");
-            }
-        }
+//        if (promoId != null) {
+//            //校验对应活动是否存在这个适用商品
+//            if (!promoId.equals(itemModel.getPromoModel().getId())) {
+//                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不正确");
+//            } else if (itemModel.getPromoModel().getStatus() != 2) {
+//                //活动是否正在进行中
+//                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动还未开始");
+//            }
+//        }
 
         //2.落单减库存，支付减库存
         boolean result = itemService.decreaseStock(itemId, amount);
@@ -110,7 +110,7 @@ public class OrderServiceImpl implements OrderService {
         //设置库存流水状态为成功
         //因为下单操作和设置流水状态为成功是在同一个事务内。不会出现下单成功，库存流水设置失败的情况
         StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
-        if(stockLogDO==null){
+        if (stockLogDO == null) {
             throw new BusinessException(EmBusinessError.UNKNOWN_ERROR);
         }
         stockLogDO.setStatus(2);

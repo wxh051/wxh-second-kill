@@ -4,8 +4,10 @@ import com.manster.seckill.dao.PromoDOMapper;
 import com.manster.seckill.entity.PromoDO;
 import com.manster.seckill.service.ItemService;
 import com.manster.seckill.service.PromoService;
+import com.manster.seckill.service.UserService;
 import com.manster.seckill.service.model.ItemModel;
 import com.manster.seckill.service.model.PromoModel;
+import com.manster.seckill.service.model.UserModel;
 import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author manster
@@ -29,6 +33,9 @@ public class PromoServiceImpl implements PromoService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     public PromoModel getPromoByItemId(Integer itemId) {
@@ -70,6 +77,64 @@ public class PromoServiceImpl implements PromoService {
 
         //将库存同步到redis内
         redisTemplate.opsForValue().set("promo_item_stock_" + itemModel.getId(), itemModel.getStock());
+
+        //将大闸的限制数字设到redis内
+        //大闸的限制数字为当前活动库存的五倍
+        redisTemplate.opsForValue().set("promo_door_count_" + promoId, itemModel.getStock().intValue() * 5);
+    }
+
+    @Override
+    public String generateSecondKillToken(Integer promoId, Integer itemId, Integer userId) {
+        //判断库存是否已售罄，若对应的售罄key存在，则直接返回下单失败
+        if (redisTemplate.hasKey("promo_item_stock_invalid_" + itemId)) {
+            return null;
+        }
+
+        PromoDO promoDO = promoDOMapper.selectByPrimaryKey(promoId);
+        //entity->model
+        PromoModel promoModel = convertFromEntity(promoDO);
+        if (promoModel == null) {
+            return null;
+        }
+        //判断当前时间活动是否即将开始或正在进行
+        if (promoModel.getStartDate().isAfterNow()) {
+            //活动未开始
+            promoModel.setStatus(1);
+        } else if (promoModel.getEndDate().isBeforeNow()) {
+            //活动已结束
+            promoModel.setStatus(3);
+        } else {
+            //正在进行中
+            promoModel.setStatus(2);
+        }
+        //判断活动是否正在进行，若不是，无法生成令牌
+        if (promoModel.getStatus().intValue() != 2) {
+            return null;
+        }
+        //判断item信息是否存在
+        ItemModel itemModel = itemService.getItemByIdInCache(itemId);
+        if (itemModel == null) {
+            return null;
+        }
+        //判断用户信息是否存在
+        UserModel userModel = userService.getUserByIdInCache(userId);
+        if (userModel == null) {
+            return null;
+        }
+
+        //获取秒杀大闸的count数量
+        long result = redisTemplate.opsForValue().increment("promo_door_count_" + promoId, -1);
+        if(result<0){
+            return null;
+        }
+
+        //生成token并且存入redis内，设置5分钟有效期
+        String token = UUID.randomUUID().toString().replace("-", "");
+        //一个用户对一个活动内的一个商品有令牌的权限
+        redisTemplate.opsForValue().set("promo_token_" + promoId + "_userid_" + userId + "_itemid_" + itemId, token);
+        redisTemplate.expire("promo_token_" + promoId + "_userid_" + userId + "_itemid_" + itemId, 5, TimeUnit.MINUTES);
+
+        return token;
     }
 
     private PromoModel convertFromEntity(PromoDO promoDO) {
