@@ -65,7 +65,7 @@ public class OrderController extends BaseController {
 
     //生成验证码
     //不需要返回任何参数。因为已通过response写入，并且set到redis上
-    //这里是get请求。通过浏览器直接敲get请求是没有这个context_type的，所以这里得把consumes = {CONTENT_TYPE_FORMED}去掉
+    //这里是post请求。但是测试时，通过get请求在浏览器直接敲get请求是没有这个context_type的，所以这里得把consumes = {CONTENT_TYPE_FORMED}去掉
     @RequestMapping(value = "/generateverifycode", method = {RequestMethod.POST, RequestMethod.GET})
     public void generateverifycode(HttpServletResponse response) throws BusinessException, IOException {
         //根据token获取用户信息
