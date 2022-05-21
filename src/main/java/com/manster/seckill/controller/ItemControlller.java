@@ -1,5 +1,6 @@
 package com.manster.seckill.controller;
 
+import com.manster.seckill.annotation.MyRateLimiter;
 import com.manster.seckill.controller.vo.ItemVO;
 import com.manster.seckill.error.BusinessException;
 import com.manster.seckill.response.CommonReturnType;
@@ -7,6 +8,7 @@ import com.manster.seckill.service.CacheService;
 import com.manster.seckill.service.ItemService;
 import com.manster.seckill.service.PromoService;
 import com.manster.seckill.service.model.ItemModel;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.format.DateTimeFormat;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ import java.util.stream.Collectors;
  * @Author manster
  * @Date 2021/5/24
  **/
+
+//测试限流输出日志
+@Slf4j
 @RestController
 @RequestMapping("/item")
 @CrossOrigin(allowCredentials = "true", allowedHeaders = "*")
@@ -61,10 +66,17 @@ public class ItemControlller extends BaseController {
         return CommonReturnType.create(itemVO);
     }
 
+    @MyRateLimiter(value = 1.0, timeout = 300)
+    @GetMapping("/testRate")
+    public CommonReturnType test1() {
+        log.info("【test1】被执行了。。。。。");
+        return CommonReturnType.create("别想一直看到我，不信你快速刷新看看~");
+    }
+
     //商品页面浏览
     @GetMapping(value = "/list")
     public CommonReturnType listItem() {
-
+        log.info("【test1】被执行了。。。。。");
         List<ItemModel> itemModelList = itemService.listItem();
 
         //使用stream api 将list内的 itemModel 转化为 itemVO
