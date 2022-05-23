@@ -7,6 +7,7 @@ import com.manster.seckill.error.EmBusinessError;
 import com.manster.seckill.response.CommonReturnType;
 import com.manster.seckill.service.UserService;
 import com.manster.seckill.service.model.UserModel;
+import com.manster.seckill.util.UUIDUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,7 +19,6 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -58,9 +58,7 @@ public class UserController extends BaseController {
         //修改成若用户登录验证成功后将对应的登录信息和登录凭证一起存入redis中
 
         //生成登录凭证token，采取UUID（保证token登录凭证的唯一性，任何一个用户的登录凭证是唯一的）的形式
-        String uuidToken = UUID.randomUUID().toString();
-        //替换“-”。主要是索引排序策略 加了-大家都一样 没有排序的意义了
-        uuidToken = uuidToken.replace("-", "");
+        String uuidToken = UUIDUtil.uuid();
         //建立token和用户登录态之间的联系
         redisTemplate.opsForValue().set(uuidToken, userModel);
         redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);

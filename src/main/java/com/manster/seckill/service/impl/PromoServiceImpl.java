@@ -8,14 +8,19 @@ import com.manster.seckill.service.UserService;
 import com.manster.seckill.service.model.ItemModel;
 import com.manster.seckill.service.model.PromoModel;
 import com.manster.seckill.service.model.UserModel;
+import com.manster.seckill.util.UUIDUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import sun.misc.BASE64Encoder;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -124,17 +129,45 @@ public class PromoServiceImpl implements PromoService {
 
         //获取秒杀大闸的count数量
         long result = redisTemplate.opsForValue().increment("promo_door_count_" + promoId, -1);
-        if(result<0){
+        if (result < 0) {
             return null;
         }
 
         //生成token并且存入redis内，设置5分钟有效期
-        String token = UUID.randomUUID().toString().replace("-", "");
+        String token = UUIDUtil.uuid();
         //一个用户对一个活动内的一个商品有令牌的权限
         redisTemplate.opsForValue().set("promo_token_" + promoId + "_userid_" + userId + "_itemid_" + itemId, token);
         redisTemplate.expire("promo_token_" + promoId + "_userid_" + userId + "_itemid_" + itemId, 5, TimeUnit.MINUTES);
 
         return token;
+    }
+
+    //获取秒杀地址
+    @Override
+    public String createPath(UserModel userModel, Integer itemId) throws UnsupportedEncodingException,
+            NoSuchAlgorithmException {
+        String str = EncodeByMd5(UUIDUtil.uuid() + "123456");
+        redisTemplate.opsForValue().set("seckillPath:"+userModel.getId()+":"+itemId,str,60,TimeUnit.SECONDS);
+        return str;
+    }
+
+    //校验秒杀地址
+    @Override
+    public boolean checkPath(UserModel userModel, Integer itemId, String path) {
+        if(StringUtils.isEmpty(path)){
+            return false;
+        }
+        String redisPath=(String) redisTemplate.opsForValue().get("seckillPath:"+userModel.getId()+":"+itemId);
+        return path.equals(redisPath);
+    }
+
+    public String EncodeByMd5(String str) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+        //确定计算方法
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        BASE64Encoder base64Encoder = new BASE64Encoder();
+        //加密字符串
+        String newstr = base64Encoder.encode(md5.digest(str.getBytes("utf-8")));
+        return newstr;
     }
 
     private PromoModel convertFromEntity(PromoDO promoDO) {

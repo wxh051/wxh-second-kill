@@ -21,6 +21,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -67,6 +69,7 @@ public class OrderController extends BaseController {
     //不需要返回任何参数。因为已通过response写入，并且set到redis上
     //这里是post请求。但是测试时，通过get请求在浏览器直接敲get请求是没有这个context_type的，所以这里得把consumes = {CONTENT_TYPE_FORMED}去掉
     @RequestMapping(value = "/generateverifycode", method = {RequestMethod.POST, RequestMethod.GET})
+    @ResponseBody
     public void generateverifycode(HttpServletResponse response) throws BusinessException, IOException {
         //根据token获取用户信息
         String token = httpServletRequest.getParameterMap().get("token")[0];
@@ -85,10 +88,28 @@ public class OrderController extends BaseController {
         ImageIO.write((RenderedImage) map.get("codePic"), "jpeg", response.getOutputStream());
     }
 
+    //获取秒杀地址
+    @RequestMapping(value = "/path",method = RequestMethod.GET)
+    @ResponseBody
+    public CommonReturnType getPath(@RequestParam(name = "itemId") Integer itemId) throws BusinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
+        String token = httpServletRequest.getParameterMap().get("token")[0];
+        if (StringUtils.isEmpty(token)) {
+            throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能生成验证码");
+        }
+        UserModel userModel = (UserModel) redisTemplate.opsForValue().get(token);
+        if (userModel == null) {
+            throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能生成验证码");
+        }
+        String str=promoService.createPath(userModel,itemId);
+        return CommonReturnType.create(str);
+
+    }
+
     //生成秒杀令牌
     //amount不需要，promoID必传。
-    @PostMapping(value = "/generatetoken", consumes = {CONTENT_TYPE_FORMED})
-    public CommonReturnType generatetoken(@RequestParam(name = "itemId") Integer itemId,
+    @PostMapping(value = "/{path}/generatetoken", consumes = {CONTENT_TYPE_FORMED})
+    public CommonReturnType generatetoken(@PathVariable String path,
+                                          @RequestParam(name = "itemId") Integer itemId,
                                           @RequestParam(name = "token", required = false) String token,
                                           @RequestParam(name = "promoId") Integer promoId,
                                           @RequestParam(name = "verifyCode") String verifyCode) throws BusinessException {
@@ -101,6 +122,12 @@ public class OrderController extends BaseController {
         //会话过期
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "会话过期，请再次登录");
+        }
+
+        //检验接口
+        boolean check=promoService.checkPath(userModel,itemId,path);
+        if(!check){
+            throw new BusinessException(EmBusinessError.REQUEST_ILLEGAL);
         }
 
         //通过verifycode验证验证码的有效性

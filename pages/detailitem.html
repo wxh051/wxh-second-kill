@@ -86,6 +86,35 @@
 
     jQuery(document).ready(function () {
         $("#verifyButton").on("click", function () {
+            //获取商品id
+            // var goodsId=g_itemVO.id;
+            var token = window.localStorage["token"];
+            reloadDom();
+            $.ajax({
+                type: "GET",
+                //有登录，把token放在请求体后面
+                // url:"http://"+g_host+"/order/createOrder?token="+token,
+                url: "http://" + g_host + "/order/path?token=" + token,
+                data: {
+                    "itemId": g_itemVO.id,
+                },
+                xhrFields: {withCredentials: true},
+                success: function (data) {
+                    if ("success" == data.status) {
+                        var path = data.data;
+                        doSeckill(path);
+                    } else {
+                        alert("获取接口失败，原因为" + data.data.errMsg);
+                    }
+                },
+                error: function (data) {
+                    alert("获取令牌失败，原因为" + data.responseText);
+                }
+            });
+
+        });
+
+        function doSeckill(path) {
             var token = window.localStorage["token"];
             //下单
             $.ajax({
@@ -93,7 +122,7 @@
                 contentType: "application/x-www-form-urlencoded",
                 //有登录，把token放在请求体后面
                 // url:"http://"+g_host+"/order/createOrder?token="+token,
-                url: "http://" + g_host + "/order/generatetoken",
+                url: "http://" + g_host + "/order/" + path + "/generatetoken",
                 data: {
                     "itemId": g_itemVO.id,
                     "token": token,
@@ -145,9 +174,9 @@
                 error: function (data) {
                     alert("获取令牌失败，原因为" + data.responseText);
                 }
-
             });
-        });
+        }
+
         $("#createorder").on("click", function () {
             var token = window.localStorage["token"];
             if (token == null) {

@@ -33,6 +33,6 @@ mq:
    addr: 39.107.152.73:9876
   topicname: stock
 
-logging:
-  level:
-    com.manster: debug
+#logging:
+#  level:
+#    com.manster: debug

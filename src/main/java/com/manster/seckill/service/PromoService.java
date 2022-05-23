@@ -1,6 +1,10 @@
 package com.manster.seckill.service;
 
 import com.manster.seckill.service.model.PromoModel;
+import com.manster.seckill.service.model.UserModel;
+
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * @Author manster
@@ -16,4 +20,10 @@ public interface PromoService {
 
     //生成秒杀用的令牌
     String generateSecondKillToken(Integer promoId,Integer itemId,Integer userId);
+
+    //获取秒杀地址
+    String createPath(UserModel userModel, Integer itemId) throws UnsupportedEncodingException, NoSuchAlgorithmException;
+
+    //校验秒杀地址
+    boolean checkPath(UserModel userModel, Integer itemId, String path);
 }

@@ -13,17 +13,19 @@ import com.manster.seckill.service.ItemService;
 import com.manster.seckill.service.PromoService;
 import com.manster.seckill.service.model.ItemModel;
 import com.manster.seckill.service.model.PromoModel;
+import com.manster.seckill.util.UUIDUtil;
 import com.manster.seckill.validator.ValidationResult;
 import com.manster.seckill.validator.ValidatorImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -54,6 +56,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private StockLogDOMapper stockLogDOMapper;
+
+    @Autowired
+    private RedisScript<Long> script;
 
     /**
      * 将商品领域模型转为orm映射对象
@@ -161,9 +166,15 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
-//        int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
+        //int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
+
         //这里自动拆箱有隐式的java空指针异常;严谨一点的写法应该在入口层面判空后异常退出
-        long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
+//        long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
+
+        //这里自己优化了一下，不用上面的减redis库存的方式。通过lua脚本实现一个分布式锁
+        Long result= (Long) redisTemplate.execute(script, Collections.singletonList("promo_item_stock_" + itemId),
+                Collections.EMPTY_LIST);
+
         //发送一条消息出去，让异步消息队列感知到，去减库存
         if (result > 0) {
             //更新库存成功
@@ -209,7 +220,7 @@ public class ItemServiceImpl implements ItemService {
         stockLogDO.setItemId(itemId);
         stockLogDO.setAmount(amount);
         //使用uuuid的方式创建一个stock_log_id，作为一个主键
-        stockLogDO.setStockLogId(UUID.randomUUID().toString().replace("-", ""));
+        stockLogDO.setStockLogId(UUIDUtil.uuid());
         stockLogDO.setStatus(1);
 
         stockLogDOMapper.insertSelective(stockLogDO);

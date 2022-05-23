@@ -10,8 +10,10 @@ import com.manster.seckill.serializer.JodaDateTimeJsonDeserializer;
 import com.manster.seckill.serializer.JodaDateTimeJsonSerializer;
 import org.joda.time.DateTime;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
@@ -50,7 +52,7 @@ public class RedisConfig {
         //指定序列化输入类型。不指定的话那存储到redis里的数据将是没有类型的纯json，我们调用redis API获取到数据后，java解析将是一个
         // LinkHashMap类型的key-value的数据结构，我们需要使用的话就要自行解析，这样增加了编程的复杂度。
         //设置以后，解析的信息就包括一些类的信息
-        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,ObjectMapper.DefaultTyping.NON_FINAL
+        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL
                 , JsonTypeInfo.As.PROPERTY);
 
         objectMapper.registerModule(simpleModule);
@@ -60,6 +62,15 @@ public class RedisConfig {
         redisTemplate.setValueSerializer(jackson2JsonRedisSerializer);
 
         return redisTemplate;
+    }
+
+    @Bean
+    public DefaultRedisScript<Long> script() {
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        //lock.lua脚本位置和application.yml同级目录
+        redisScript.setLocation(new ClassPathResource("stock.lua"));
+        redisScript.setResultType(Long.class);
+        return redisScript;
     }
 
 }
