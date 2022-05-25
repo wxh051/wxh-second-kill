@@ -13,8 +13,10 @@ import com.manster.seckill.service.OrderService;
 import com.manster.seckill.service.UserService;
 import com.manster.seckill.service.model.ItemModel;
 import com.manster.seckill.service.model.OrderModel;
+import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author manster
@@ -44,6 +47,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private StockLogDOMapper stockLogDOMapper;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Override
     @Transactional
@@ -92,6 +98,12 @@ public class OrderServiceImpl implements OrderService {
         if (promoId != null) {
             //商品价格取特价
             orderModel.setItemPrice(itemModel.getPromoModel().getPromoItemPrice());
+
+            redisTemplate.opsForValue().set("order:userId_" + userId + "_itemId_" + itemId, true);
+            DateTime endTime = itemModel.getPromoModel().getEndDate();
+            DateTime curTime = DateTime.now();
+            redisTemplate.expire("order:userId_" + userId + "_itemId_" + itemId,
+                    endTime.toDate().getTime() - curTime.toDate().getTime(), TimeUnit.MILLISECONDS);
         } else {
             orderModel.setItemPrice(itemModel.getPrice());
         }
@@ -150,12 +162,12 @@ public class OrderServiceImpl implements OrderService {
         //获取当前sequence
         int sequence = 0;
         /*
-        * 查询语句getSequenceByName后面增加 for update，数据库在查询过程中给数据表增加排他锁（InnoDb引擎在加锁的时候，
-        * 只有通过索引进行检索的时候才会使用行级锁，否则会使用表级锁。我们希望使用行级锁，就要给method_name添加索引，
-        * 这个索引一定要创建成唯一索引，否则会出现多个重载方法之间无法同时访问的问题）当某条记录被加上排他锁之后，
-        * 其他线程无法再在该行记录上增加排他锁。
-        *
-        * */
+         * 查询语句getSequenceByName后面增加 for update，数据库在查询过程中给数据表增加排他锁（InnoDb引擎在加锁的时候，
+         * 只有通过索引进行检索的时候才会使用行级锁，否则会使用表级锁。我们希望使用行级锁，就要给method_name添加索引，
+         * 这个索引一定要创建成唯一索引，否则会出现多个重载方法之间无法同时访问的问题）当某条记录被加上排他锁之后，
+         * 其他线程无法再在该行记录上增加排他锁。
+         *
+         * */
         SequenceDO sequenceDO = sequenceDOMapper.getSequenceByName("order_info");
         sequence = sequenceDO.getCurrentValue();
         sequenceDO.setCurrentValue(sequenceDO.getCurrentValue() + sequenceDO.getStep());

@@ -62,7 +62,7 @@ public class OrderController extends BaseController {
         executorService = Executors.newFixedThreadPool(20);
 
         //permitsPerSecond设置为300,TPS（当时压测，两台服务器已经做到了700的流量，也就是每台服务器350，这里取一个保护的服务器的数值300）
-        orderCreateTateLimiter=RateLimiter.create(300);
+        orderCreateTateLimiter = RateLimiter.create(300);
     }
 
     //生成验证码
@@ -89,9 +89,10 @@ public class OrderController extends BaseController {
     }
 
     //获取秒杀地址
-    @RequestMapping(value = "/path",method = RequestMethod.GET)
+    @RequestMapping(value = "/path", method = RequestMethod.GET)
     @ResponseBody
-    public CommonReturnType getPath(@RequestParam(name = "itemId") Integer itemId) throws BusinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
+    public CommonReturnType getPath(@RequestParam(name = "itemId") Integer itemId) throws BusinessException,
+            UnsupportedEncodingException, NoSuchAlgorithmException {
         String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能生成验证码");
@@ -100,7 +101,7 @@ public class OrderController extends BaseController {
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登录，不能生成验证码");
         }
-        String str=promoService.createPath(userModel,itemId);
+        String str = promoService.createPath(userModel, itemId);
         return CommonReturnType.create(str);
 
     }
@@ -125,19 +126,24 @@ public class OrderController extends BaseController {
         }
 
         //检验接口
-        boolean check=promoService.checkPath(userModel,itemId,path);
-        if(!check){
+        boolean check = promoService.checkPath(userModel, itemId, path);
+        if (!check) {
             throw new BusinessException(EmBusinessError.REQUEST_ILLEGAL);
         }
 
         //通过verifycode验证验证码的有效性
         String redisVerifyCode = (String) redisTemplate.opsForValue().get("verify_code_" + userModel.getId());
-        if(StringUtils.isEmpty(redisVerifyCode)){
-            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR,"请求非法");
+        if (StringUtils.isEmpty(redisVerifyCode)) {
+            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "请求非法");
         }
-        if(!redisVerifyCode.equalsIgnoreCase(verifyCode)){
-            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR,"请求非法，验证码错误");
+        if (!redisVerifyCode.equalsIgnoreCase(verifyCode)) {
+            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "请求非法，验证码错误");
         }
+
+          //检验重复购买(这里先注释掉，否则不好调式）
+//        if (redisTemplate.hasKey("order:userId_" + userModel.getId() + "_itemId_" + itemId)) {
+//            throw new BusinessException(EmBusinessError.REPEAT_ILLEGAL);
+//        }
 
         //获取访问秒杀令牌
         String promoToken = promoService.generateSecondKillToken(promoId, itemId, userModel.getId());
@@ -162,7 +168,7 @@ public class OrderController extends BaseController {
 
         //返回失败，代表没有拿到令牌
         //看底层代码是通过这一秒令牌没了他等待一秒后优先抢占下一秒冲回去的令牌
-        if(!orderCreateTateLimiter.tryAcquire()){
+        if (!orderCreateTateLimiter.tryAcquire()) {
             throw new BusinessException(EmBusinessError.RATELIMIT);
         }
 //

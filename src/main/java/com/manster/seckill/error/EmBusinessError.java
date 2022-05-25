@@ -20,6 +20,7 @@ public enum EmBusinessError implements CommonError {
     MQ_SEND_FAIL(30002,"库存异步消息失败"),
     RATELIMIT(30003,"活动太火爆，请稍后再试"),
     REQUEST_ILLEGAL(30004,"请求非法，请重新尝试"),
+    REPEAT_ILLEGAL(30005,"重复购买，请求非法"),
     ;
 
     private EmBusinessError(int errCode, String errMsg){
