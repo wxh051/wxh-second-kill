@@ -11,4 +11,7 @@ public interface CacheService {
 
     //取方法
     Object getFromCommonCache(String key);
+
+    //删掉缓存
+    void removeCommonCache(String key);
 }
