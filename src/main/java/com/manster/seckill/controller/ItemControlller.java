@@ -1,6 +1,7 @@
 package com.manster.seckill.controller;
 
-import com.manster.seckill.annotation.MyRateLimiter;
+import com.manster.seckill.Enum.LimitType;
+import com.manster.seckill.annotation.RateLimiter;
 import com.manster.seckill.controller.vo.ItemVO;
 import com.manster.seckill.error.BusinessException;
 import com.manster.seckill.response.CommonReturnType;
@@ -66,7 +67,9 @@ public class ItemControlller extends BaseController {
         return CommonReturnType.create(itemVO);
     }
 
-    @MyRateLimiter(value = 1.0, timeout = 300)
+    /*//guava本地限流
+    @MyRateLimiter(value = 1.0, timeout = 300)*/
+    @RateLimiter(value = 5,limitType = LimitType.IP)
     @GetMapping("/testRate")
     public CommonReturnType test1() {
         log.info("【test1】被执行了。。。。。");
@@ -76,7 +79,6 @@ public class ItemControlller extends BaseController {
     //商品页面浏览
     @GetMapping(value = "/list")
     public CommonReturnType listItem() {
-        log.info("【test1】被执行了。。。。。");
         List<ItemModel> itemModelList = itemService.listItem();
 
         //使用stream api 将list内的 itemModel 转化为 itemVO

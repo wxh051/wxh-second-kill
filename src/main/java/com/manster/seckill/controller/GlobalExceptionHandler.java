@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
     @ResponseBody
     public CommonReturnType doError(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse,
                                     Exception ex) {
-        ex.printStackTrace();
+//        ex.printStackTrace();//注释掉这行，一些没必要的报错信息就不提示了，看起来好点。最后还是打开，方便报错后调试
         Map<String, Object> responseData = new HashMap<>();
         if (ex instanceof BusinessException) {
             BusinessException businessException = (BusinessException) ex;

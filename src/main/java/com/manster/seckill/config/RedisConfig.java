@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 import org.springframework.stereotype.Component;
 
@@ -68,9 +69,17 @@ public class RedisConfig {
     public DefaultRedisScript<Long> script() {
         DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         //lock.lua脚本位置和application.yml同级目录
-        redisScript.setLocation(new ClassPathResource("stock.lua"));
+        redisScript.setLocation(new ClassPathResource("lua/stock.lua"));
         redisScript.setResultType(Long.class);
         return redisScript;
     }
 
+    @Bean
+    //redis+lua实现限流
+    public DefaultRedisScript<Long> limitScript() {
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/limit.lua")));
+        redisScript.setResultType(Long.class);
+        return redisScript;
+    }
 }
